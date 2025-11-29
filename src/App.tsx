@@ -35,6 +35,166 @@ type Block = {
 
 type Diagram = { id: string; name: string; blocks: Block[] };
 
+
+// XML Export: Convert diagram to XML with blocks and port names only
+function diagramToXML(diagram: Diagram): string {
+  let xml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+  xml += `<diagram id="${diagram.id}" name="${escapeXml(diagram.name)}">\n`;
+  
+  function blockToXML(block: Block, indent: string): string {
+    let result = `${indent}<block id="${block.id}" name="${escapeXml(block.name)}"`;
+    if (block.x !== undefined) result += ` x="${block.x}"`;
+    if (block.y !== undefined) result += ` y="${block.y}"`;
+    result += '>\n';
+    
+    // Add ports
+    if (block.ports && block.ports.length > 0) {
+      result += `${indent}  <ports>\n`;
+      block.ports.forEach(port => {
+        result += `${indent}    <port id="${port.id}" name="${escapeXml(port.name || '')}" side="${port.side || 'right'}"`;
+        if (port.target) {
+          result += ` target-block="${port.target.blockId}" target-port="${port.target.portId}"`;
+        }
+        result += ' />\n';
+      });
+      result += `${indent}  </ports>\n`;
+    }
+    
+    // Add subblocks recursively
+    if (block.subblocks && block.subblocks.length > 0) {
+      result += `${indent}  <subblocks>\n`;
+      block.subblocks.forEach(sub => {
+        result += blockToXML(sub, indent + '    ');
+      });
+      result += `${indent}  </subblocks>\n`;
+    }
+    
+    result += `${indent}</block>\n`;
+    return result;
+  }
+  
+  diagram.blocks.forEach(block => {
+    xml += blockToXML(block, '  ');
+  });
+  
+  xml += '</diagram>';
+  return xml;
+}
+
+function escapeXml(str: string): string {
+  return (str || '').replace(/[<>&'"]/g, (c) => {
+    switch (c) {
+      case '<': return '&lt;';
+      case '>': return '&gt;';
+      case '&': return '&amp;';
+      case "'": return '&apos;';
+      case '"': return '&quot;';
+      default: return c;
+    }
+  });
+}
+
+// XML Import: Parse XML back to diagram
+function xmlToDiagram(xmlString: string, diagramId: string): Diagram {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(xmlString, 'text/xml');
+  
+  const diagramEl = doc.querySelector('diagram');
+  if (!diagramEl) throw new Error('Invalid XML: No diagram element found');
+  
+  const name = diagramEl.getAttribute('name') || 'Imported Diagram';
+  
+  function parseBlock(blockEl: Element): Block {
+    const block: Block = {
+      id: blockEl.getAttribute('id') || `b${Date.now()}`,
+      name: blockEl.getAttribute('name') || 'Unnamed',
+      x: blockEl.hasAttribute('x') ? parseFloat(blockEl.getAttribute('x')!) : undefined,
+      y: blockEl.hasAttribute('y') ? parseFloat(blockEl.getAttribute('y')!) : undefined,
+      ports: [],
+      requirements: [],
+      subblocks: []
+    };
+    
+    // Parse ports
+    const portsEl = blockEl.querySelector('ports');
+    if (portsEl) {
+      const portElements = portsEl.querySelectorAll('port');
+      portElements.forEach(portEl => {
+        const port: Port = {
+          id: portEl.getAttribute('id') || `p${Date.now()}`,
+          name: portEl.getAttribute('name') || undefined,
+          side: (portEl.getAttribute('side') as 'left' | 'right') || 'right'
+        };
+        
+        const targetBlock = portEl.getAttribute('target-block');
+        const targetPort = portEl.getAttribute('target-port');
+        if (targetBlock && targetPort) {
+          port.target = { blockId: targetBlock, portId: targetPort };
+        }
+        
+        block.ports!.push(port);
+      });
+    }
+    
+    // Parse subblocks recursively
+    const subblocksEl = blockEl.querySelector('subblocks');
+    if (subblocksEl) {
+      const subblockElements = subblocksEl.querySelectorAll(':scope > block');
+      subblockElements.forEach(subEl => {
+        block.subblocks!.push(parseBlock(subEl));
+      });
+    }
+    
+    return block;
+  }
+  
+  const blocks: Block[] = [];
+  const blockElements = doc.querySelectorAll('diagram > block');
+  blockElements.forEach(blockEl => {
+    blocks.push(parseBlock(blockEl));
+  });
+  
+  return { id: diagramId, name, blocks };
+}
+
+// Download XML file
+function downloadXML(filename: string, content: string) {
+  const blob = new Blob([content], { type: 'text/xml' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+// Import XML from file
+function importXMLFile(onImport: (diagram: Diagram) => void) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.xml';
+  input.onchange = (e) => {
+    const file = (e.target as HTMLInputElement).files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const xmlString = evt.target?.result as string;
+        const diagram = xmlToDiagram(xmlString, `imported-${Date.now()}`);
+        onImport(diagram);
+      } catch (err) {
+        console.error('Failed to import XML:', err);
+        alert('Failed to import XML file. Please check the file format.');
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+}
+
 async function api<T>(path: string, opts?: RequestInit) {
   const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (!res.ok) throw new Error(await res.text());
