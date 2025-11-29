@@ -1,4 +1,4 @@
-# Block Diagram App
+# Software Architect Block Diagram Application
 
 A lightweight React + TypeScript editor for block diagrams with ports, connections and nested sub-blocks.  
 Goals: simple visual editing, portable JSON diagrams, and an extensible codebase so contributors can add layout, persistence, and UX improvements.
