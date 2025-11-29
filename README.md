@@ -24,7 +24,7 @@ Quick start (local)
 2. Install and run:
    - npm install
    - npm start
-3. Open http://localhost:3000 (or configured dev server port).
+3. Open http://localhost:5173 (or configured dev server port).
 
 Build and deploy
 - Build for production:
