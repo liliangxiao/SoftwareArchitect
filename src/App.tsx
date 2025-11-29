@@ -368,6 +368,27 @@ function DiagramCanvas({
     window.addEventListener('mouseup', onWindowMouseUp);
   }
 
+  // compute SVG canvas bounds and auto-pan if block is dragged outside
+  function getCanvasBounds() {
+    const svgRect = svgRef.current?.getBoundingClientRect();
+    return {
+      width: Math.max(300, svgRect?.width ?? 800),
+      height: Math.max(420, svgRect?.height ?? 400),
+    };
+  }
+
+  // helper: clamp block position to stay within reasonable canvas bounds
+  function clampBlockPos(x: number, y: number, blockWidth: number, blockHeight: number) {
+    const bounds = getCanvasBounds();
+    const viewOffset = view.parentBlockId ? getViewBox().innerOffset : { x: 0, y: 0 };
+    const maxX = Math.max(100, bounds.width - viewOffset.x - 20);
+    const maxY = Math.max(100, bounds.height - viewOffset.y - 20);
+    return {
+      x: Math.max(0, Math.min(x, maxX - blockWidth)),
+      y: Math.max(0, Math.min(y, maxY - blockHeight)),
+    };
+  }
+
   function onWindowMouseMove(e: MouseEvent) {
     const draggingId = draggingRef.current;
     if (!draggingId) return;
@@ -379,10 +400,14 @@ function DiagramCanvas({
     // new rendered position then convert back to block-local coordinates
     const newRenderedX = svgPoint.x - dragOffsetRef.current.x;
     const newRenderedY = svgPoint.y - dragOffsetRef.current.y;
-    const newLocalX = Math.max(0, newRenderedX - viewOffset.x);
-    const newLocalY = Math.max(0, newRenderedY - viewOffset.y);
+    const newLocalX = newRenderedX - viewOffset.x;
+    const newLocalY = newRenderedY - viewOffset.y;
 
-    const updated: Block = { ...b, x: newLocalX, y: newLocalY };
+    // clamp to canvas bounds
+    const size = blockSize(b);
+    const clamped = clampBlockPos(newLocalX, newLocalY, size.width, size.height);
+
+    const updated: Block = { ...b, x: clamped.x, y: clamped.y };
     const blocks = view.blocks.map(bb => (bb.id === updated.id ? updated : bb));
     replaceTopViewBlocks(blocks);
 
@@ -424,17 +449,35 @@ function DiagramCanvas({
     b.ports = [...(b.ports ?? []), { id: pid, name: 'port', side } as Port];
     updateBlockInView({ ...b });
   }
+
   function removePort(blockId: string, portId: string) {
     const b = view.blocks.find(bb => bb.id === blockId);
     if (!b || !b.ports) return;
     b.ports = b.ports.filter(p => p.id !== portId);
     updateBlockInView({ ...b });
   }
+
   function editPort(blockId: string, portId: string, changes: Partial<Port>) {
     const b = view.blocks.find(bb => bb.id === blockId);
     if (!b || !b.ports) return;
     b.ports = b.ports.map(p => (p.id === portId ? { ...p, ...changes } : p));
     updateBlockInView({ ...b });
+  }
+
+  // move port up or down in the ports array
+  function movePort(blockId: string, portId: string, direction: 'up' | 'down') {
+    const b = view.blocks.find(bb => bb.id === blockId);
+    if (!b || !b.ports) return;
+    const idx = b.ports.findIndex(p => p.id === portId);
+    if (idx < 0) return;
+    
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= b.ports.length) return;
+    
+    // swap
+    const newPorts = [...b.ports];
+    [newPorts[idx], newPorts[newIdx]] = [newPorts[newIdx], newPorts[idx]];
+    updateBlockInView({ ...b, ports: newPorts });
   }
 
   // requirement operations
@@ -459,6 +502,7 @@ function DiagramCanvas({
   }
 
   // connect by click: click "Start connect" on a source port, then click a target port (any block)
+ // connect by click: click "Start connect" on a source port, then click a target port (any block)
   function startConnect(blockId: string, portId: string) {
     setPendingConn({ blockId, portId });
   }
@@ -469,19 +513,96 @@ function DiagramCanvas({
       setPendingConn(null);
       return;
     }
-    // set source port's target -- if source is not in current view, attempt to update its owner
+    
+    // Find the source block (could be in current view or in parent)
     const srcBlock = view.blocks.find(b => b.id === pendingConn.blockId) || findBlockRecursive(pendingConn.blockId);
-    if (!srcBlock || !srcBlock.ports) { setPendingConn(null); return; }
-    srcBlock.ports = srcBlock.ports.map(p =>
-      p.id === pendingConn.portId ? { ...p, target: { blockId: targetBlockId, portId: targetPortId } } : p
-    );
-    // persist change in whichever level the source belongs to
-    if (view.blocks.some(bb => bb.id === srcBlock.id)) updateBlockInView({ ...srcBlock });
-    else {
-      // search and update in root
-      const updatedRoot = local.blocks.map(b => (b.id === srcBlock.id ? srcBlock : b));
+    if (!srcBlock || !srcBlock.ports) { 
+      setPendingConn(null); 
+      return; 
+    }
+    
+    // Update the source port's target
+    const updatedSrcBlock = {
+      ...srcBlock,
+      ports: srcBlock.ports.map(p =>
+        p.id === pendingConn.portId ? { ...p, target: { blockId: targetBlockId, portId: targetPortId } } : p
+      )
+    };
+    
+    // Persist the change - handle both cases: source in current view or in parent/root
+    if (view.blocks.some(bb => bb.id === updatedSrcBlock.id)) {
+      // Source is in current view
+      updateBlockInView(updatedSrcBlock);
+    } else if (view.parentBlockId && updatedSrcBlock.id === view.parentBlockId) {
+      // Source is the parent block itself - this shouldn't happen in normal flow, but handle it
+      const updatedRoot = local.blocks.map(b => (b.id === updatedSrcBlock.id ? updatedSrcBlock : b));
+      updateTopLevelBlocks(updatedRoot);
+    } else {
+      // Source is somewhere in the root hierarchy
+      function updateBlockRecursive(blocks: Block[]): Block[] {
+        return blocks.map(b => {
+          if (b.id === updatedSrcBlock.id) return updatedSrcBlock;
+          if (Array.isArray(b.subblocks)) {
+            return { ...b, subblocks: updateBlockRecursive(b.subblocks) };
+          }
+          return b;
+        });
+      }
+      const updatedRoot = updateBlockRecursive(local.blocks);
       updateTopLevelBlocks(updatedRoot);
     }
+    
+    setPendingConn(null);
+  }// connect by click: click "Start connect" on a source port, then click a target port (any block)
+  function startConnect(blockId: string, portId: string) {
+    setPendingConn({ blockId, portId });
+  }
+  function clickPortToConnect(targetBlockId: string, targetPortId: string) {
+    if (!pendingConn) return;
+    // do not allow connecting to self same port
+    if (pendingConn.blockId === targetBlockId && pendingConn.portId === targetPortId) {
+      setPendingConn(null);
+      return;
+    }
+    
+    // Find the source block (could be in current view or in parent)
+    const srcBlock = view.blocks.find(b => b.id === pendingConn.blockId) || findBlockRecursive(pendingConn.blockId);
+    if (!srcBlock || !srcBlock.ports) { 
+      setPendingConn(null); 
+      return; 
+    }
+    
+    // Update the source port's target
+    const updatedSrcBlock = {
+      ...srcBlock,
+      ports: srcBlock.ports.map(p =>
+        p.id === pendingConn.portId ? { ...p, target: { blockId: targetBlockId, portId: targetPortId } } : p
+      )
+    };
+    
+    // Persist the change - handle both cases: source in current view or in parent/root
+    if (view.blocks.some(bb => bb.id === updatedSrcBlock.id)) {
+      // Source is in current view
+      updateBlockInView(updatedSrcBlock);
+    } else if (view.parentBlockId && updatedSrcBlock.id === view.parentBlockId) {
+      // Source is the parent block itself - this shouldn't happen in normal flow, but handle it
+      const updatedRoot = local.blocks.map(b => (b.id === updatedSrcBlock.id ? updatedSrcBlock : b));
+      updateTopLevelBlocks(updatedRoot);
+    } else {
+      // Source is somewhere in the root hierarchy
+      function updateBlockRecursive(blocks: Block[]): Block[] {
+        return blocks.map(b => {
+          if (b.id === updatedSrcBlock.id) return updatedSrcBlock;
+          if (Array.isArray(b.subblocks)) {
+            return { ...b, subblocks: updateBlockRecursive(b.subblocks) };
+          }
+          return b;
+        });
+      }
+      const updatedRoot = updateBlockRecursive(local.blocks);
+      updateTopLevelBlocks(updatedRoot);
+    }
+    
     setPendingConn(null);
   }
 
@@ -645,49 +766,37 @@ function DiagramCanvas({
     setSelectedBlockId(groupId);
   }
 
-  // enter a subblock (if the selected block has subblocks)
-  function enterSubblock(block: Block) {
-    if (!Array.isArray(block.subblocks)) {
-      alert('Block has no subblocks to enter.');
-      return;
+    function exitSubblock() {
+    if (viewStack.length <= 1) return;
+    const top = viewStack[viewStack.length - 1];
+    const parentBlockId = top.parentBlockId;
+    if (!parentBlockId) {
+        setViewStack(prev => prev.slice(0, -1));
+        return;
     }
-    // when entering, subblocks are already stored with coordinates relative to group origin
+
+    // Subblocks are already stored with relative coordinates, so just save them as-is
+    // No coordinate conversion needed
+    const updatedRootBlocks = local.blocks.map(b => 
+        b.id === parentBlockId ? { ...b, subblocks: top.blocks } : b
+    );
+    updateTopLevelBlocks(updatedRootBlocks);
+
+    // Pop the view stack
+    setViewStack(prev => prev.slice(0, -1));
+    }
+
+    function enterSubblock(block: Block) {
+    if (!Array.isArray(block.subblocks)) {
+        alert('Block has no subblocks to enter.');
+        return;
+    }
+    // Subblocks are already stored with coordinates relative to the group origin (from grouping)
+    // Use them directly without any coordinate conversion
     setViewStack(prev => [...prev, { blocks: block.subblocks || [], parentBlockId: block.id }]);
     setSelectedBlockId(null);
     setSelectedBlocks({});
-  }
-
-  function exitSubblock() {
-    if (viewStack.length <= 1) return;
-    // write back the top view blocks into parent block's subblocks, converting coordinates back to global
-    const top = viewStack[viewStack.length - 1]; // the view we are leaving
-    const parentLevel = viewStack[viewStack.length - 2];
-    const parentBlockId = top.parentBlockId;
-    if (!parentBlockId) {
-      setViewStack(prev => prev.slice(0, -1));
-      return;
     }
-    const parentBlock = findBlockRecursive(parentBlockId);
-    if (!parentBlock) {
-      // fallback: just pop
-      setViewStack(prev => prev.slice(0, -1));
-      return;
-    }
-
-    // convert relative coords back to parent's global position
-    const restoredSubblocks = (top.blocks || []).map(sb => ({
-      ...sb,
-      x: (sb.x ?? 0) + (parentBlock.x ?? 0),
-      y: (sb.y ?? 0) + (parentBlock.y ?? 0),
-    }));
-
-    // update the parent block in the root blocks list
-    const updatedRootBlocks = local.blocks.map(b => (b.id === parentBlockId ? { ...b, subblocks: restoredSubblocks } : b));
-    updateTopLevelBlocks(updatedRootBlocks);
-
-    // pop view
-    setViewStack(prev => prev.slice(0, -1));
-  }
 
   // build connections using findPortPos for both ends (ensures parent-edge ports and child ports align)
   const conns: { from: { x: number; y: number }; to: { x: number; y: number } }[] = [];
@@ -740,6 +849,53 @@ function DiagramCanvas({
               ← Back
             </button>
           ) : null}
+          
+          {/* Block selector dropdown */}
+          <select
+            value={selectedBlockId ?? ''}
+            onChange={(e) => {
+              const bid = e.target.value;
+              if (bid) {
+                setSelectedBlockId(bid);
+                setSelectedBlocks({});
+                setEditingPortId(null);
+              }
+            }}
+            style={{ marginLeft: 8, padding: '4px 8px' }}
+          >
+            <option value="">— Select Block —</option>
+            {view.blocks.map(b => (
+              <option key={b.id} value={b.id}>
+                {b.name}
+              </option>
+            ))}
+          </select>
+
+          {/* XML export/import buttons */}
+          <button
+            onClick={() => {
+              const includeReqs = window.confirm('Include requirements in export?');
+              const xml = diagramToXML(local, includeReqs);
+              downloadXML(`diagram-${local.id}.xml`, xml);
+            }}
+            style={{ marginLeft: 8 }}
+          >
+            📥 Export XML
+          </button>
+          <button
+            onClick={() => {
+              importXMLFile((imported) => {
+                setLocal(imported);
+                setViewStack([{ blocks: imported.blocks, parentBlockId: null }]);
+                onUpdate(imported);
+                alert('Diagram imported successfully');
+              });
+            }}
+            style={{ marginLeft: 4 }}
+          >
+            📤 Import XML
+          </button>
+
           {pendingConn ? <span style={{ marginLeft: 12, fontSize: 12, color: '#666' }}>Connecting from {pendingConn.blockId}:{pendingConn.portId} — click target port</span> : null}
         </div>
 
@@ -895,7 +1051,9 @@ function DiagramCanvas({
             );
           })}
         </svg>
-        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>Drag blocks to move. Ctrl-click to multi-select.</div>
+        <div style={{ marginTop: 8, fontSize: 12, color: '#666' }}>
+          Drag blocks to move (bounded to canvas). Ctrl-click to multi-select. Use dropdown to jump to blocks.
+        </div>
       </div>
 
       {/* inspector / editor */}
@@ -917,11 +1075,21 @@ function DiagramCanvas({
                   </div>
                   <div style={{ marginTop: 6 }}>
                     <label>X: </label>
-                    <input type="number" value={b.x ?? 0} onChange={e => updateBlockInView({ ...b, x: parseInt(e.target.value) || 0 })} style={{ width: '100%' }} />
+                    <input type="number" value={b.x ?? 0} onChange={e => {
+                      const val = parseInt(e.target.value) || 0;
+                      const size = blockSize(b);
+                      const clamped = clampBlockPos(val, b.y ?? 0, size.width, size.height);
+                      updateBlockInView({ ...b, x: clamped.x });
+                    }} style={{ width: '100%' }} />
                   </div>
                   <div style={{ marginTop: 6 }}>
                     <label>Y: </label>
-                    <input type="number" value={b.y ?? 0} onChange={e => updateBlockInView({ ...b, y: parseInt(e.target.value) || 0 })} style={{ width: '100%' }} />
+                    <input type="number" value={b.y ?? 0} onChange={e => {
+                      const val = parseInt(e.target.value) || 0;
+                      const size = blockSize(b);
+                      const clamped = clampBlockPos(b.x ?? 0, val, size.width, size.height);
+                      updateBlockInView({ ...b, y: clamped.y });
+                    }} style={{ width: '100%' }} />
                   </div>
                   <div style={{ marginTop: 8 }}>
                     <button onClick={() => addPort(b.id, 'left')}>+ Port (left)</button>
@@ -975,6 +1143,8 @@ function DiagramCanvas({
                       </div>
                       <div style={{ display: 'flex', gap: 6 }}>
                         <button onClick={() => startConnect(b.id, p.id)} style={{ flex: 1 }}>Connect</button>
+                        <button onClick={() => movePort(b.id, p.id, 'up')} style={{ padding: '2px 6px' }}>↑</button>
+                        <button onClick={() => movePort(b.id, p.id, 'down')} style={{ padding: '2px 6px' }}>↓</button>
                         <button onClick={() => removePort(b.id, p.id)} style={{ color: 'darkred' }}>Remove</button>
                       </div>
                       {p.target && <div style={{ fontSize: 11, color: '#666' }}>→ {p.target.blockId}:{p.target.portId}</div>}

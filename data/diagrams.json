@@ -1,9 +1,168 @@
 {
   "diagrams": [
     {
-      "id": "1764386964388",
-      "name": "Diagram 1764386964425",
-      "blocks": []
+      "id": "1764390463455",
+      "name": "Diagram 1764390463370",
+      "blocks": [
+        {
+          "id": "b1764390465225",
+          "name": "Camera",
+          "x": 179,
+          "y": 86,
+          "ports": [
+            {
+              "id": "b1764390465225-p1764390529913",
+              "name": "urgent:bl",
+              "side": "right",
+              "target": {
+                "blockId": "g1764391034194",
+                "portId": "g1764391034194-in-0"
+              }
+            },
+            {
+              "id": "b1764390465225-p1764390530073",
+              "name": "UnSafe:int",
+              "side": "right",
+              "target": {
+                "blockId": "g1764391034194",
+                "portId": "g1764391034194-in-1"
+              }
+            }
+          ],
+          "requirements": []
+        },
+        {
+          "id": "b1764390475785",
+          "name": "ABS",
+          "x": 177,
+          "y": 239,
+          "ports": [
+            {
+              "id": "b1764390475785-p1764390547146",
+              "name": "locked:fl",
+              "side": "right",
+              "target": {
+                "blockId": "g1764391034194",
+                "portId": "g1764391034194-in-2"
+              }
+            }
+          ],
+          "requirements": []
+        },
+        {
+          "id": "g1764391034194",
+          "name": "Group",
+          "x": 586,
+          "y": 154,
+          "ports": [
+            {
+              "id": "g1764391034194-in-0",
+              "name": "urgent:bl",
+              "side": "left",
+              "target": {
+                "blockId": "b1764390465202",
+                "portId": "b1764390465202-p1764390572002"
+              }
+            },
+            {
+              "id": "g1764391034194-in-1",
+              "name": "UnSafe:int",
+              "side": "left",
+              "target": {
+                "blockId": "b1764390465202",
+                "portId": "b1764390465202-p1764390570466"
+              }
+            },
+            {
+              "id": "g1764391034194-in-2",
+              "name": "locked:fl",
+              "side": "left",
+              "target": {
+                "blockId": "b1764390465202",
+                "portId": "b1764390465202-p1764390572433"
+              }
+            },
+            {
+              "id": "g1764391034194-p1764391070594",
+              "name": "PWM",
+              "side": "right"
+            }
+          ],
+          "requirements": [],
+          "subblocks": [
+            {
+              "id": "b1764390465202",
+              "name": "BrakeController",
+              "x": 312,
+              "y": 77,
+              "ports": [
+                {
+                  "id": "b1764390465202-p1764390570466",
+                  "name": "sld:int",
+                  "side": "left",
+                  "target": {
+                    "blockId": "b1764390485225",
+                    "portId": "b1764390485225-p1764390578602"
+                  }
+                },
+                {
+                  "id": "b1764390465202-p1764390572002",
+                  "name": "stop:bl",
+                  "side": "left"
+                },
+                {
+                  "id": "b1764390465202-p1764390572433",
+                  "name": "rls:bl",
+                  "side": "left"
+                },
+                {
+                  "id": "b1764390465202-p1764390575929",
+                  "name": "brake:int",
+                  "side": "right"
+                },
+                {
+                  "id": "b1764390465202-p1764390576113",
+                  "name": "fault:bl",
+                  "side": "right",
+                  "target": {
+                    "blockId": "b1764390485225",
+                    "portId": "b1764390485225-p1764390884410"
+                  }
+                }
+              ],
+              "requirements": []
+            },
+            {
+              "id": "b1764390485225",
+              "name": "Brake",
+              "x": 724,
+              "y": 94,
+              "ports": [
+                {
+                  "id": "b1764390485225-p1764390578602",
+                  "name": "pstn:int",
+                  "side": "left"
+                },
+                {
+                  "id": "b1764390485225-p1764390587370",
+                  "name": "PWM",
+                  "side": "right",
+                  "target": {
+                    "blockId": "g1764391034194",
+                    "portId": "g1764391034194-p1764391070594"
+                  }
+                },
+                {
+                  "id": "b1764390485225-p1764390884410",
+                  "name": "err:bl",
+                  "side": "left"
+                }
+              ],
+              "requirements": []
+            }
+          ]
+        }
+      ]
     }
   ]
 }
