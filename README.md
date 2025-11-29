@@ -45,7 +45,7 @@ Maintainers
 - Encourage small PRs, include reproducible steps, and document UX changes.
 
 License
-- Add an OSS license (MIT/Apache) by creating a LICENSE file in the project root before publishing.
+- MIT/Apache
 
 Contact / Joining
 - Add a CONTRIBUTING.md and CODE_OF_CONDUCT.md when opening the repo for contributors. See design doc for suggested structure.
