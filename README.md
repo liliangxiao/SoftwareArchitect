@@ -1,4 +1,7 @@
 # Block Diagram App
+<img width="1882" height="900" alt="image" src="https://github.com/user-attachments/assets/0ce069fd-a326-41fb-b6ce-8f4ae8001eb4" />
+
+<img width="1900" height="910" alt="image" src="https://github.com/user-attachments/assets/48335fb5-4c01-4dc6-b068-0993500fa7e7" />
 
 A lightweight React + TypeScript editor for block diagrams with ports, connections and nested sub-blocks.  
 Goals: simple visual editing, portable JSON diagrams, and an extensible codebase so contributors can add layout, persistence, and UX improvements.
