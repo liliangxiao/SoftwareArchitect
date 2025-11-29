@@ -3,8 +3,8 @@
 This document explains architecture, data model, key components and contributor guidance so new developers can quickly join and extend the project.
 
 Repository entry points
-- Main UI and types: [`block-diagram-app/src/App.tsx`](block-diagram-app/src/App.tsx)
-  - Key exported/used symbols: [`api`](block-diagram-app/src/App.tsx), types [`Diagram`](block-diagram-app/src/App.tsx), [`Block`](block-diagram-app/src/App.tsx), [`Port`](block-diagram-app/src/App.tsx), and components [`DiagramCanvas`](block-diagram-app/src/App.tsx), [`DiagramView`](block-diagram-app/src/App.tsx), [`DiagramList`](block-diagram-app/src/App.tsx), [`App`](block-diagram-app/src/App.tsx).
+- Main UI and types: [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx)
+  - Key exported/used symbols: [`api`](SoftwareArchitec/src/App.tsx), types [`Diagram`](SoftwareArchitec/src/App.tsx), [`Block`](SoftwareArchitec/src/App.tsx), [`Port`](SoftwareArchitec/src/App.tsx), and components [`DiagramCanvas`](SoftwareArchitec/src/App.tsx), [`DiagramView`](SoftwareArchitec/src/App.tsx), [`DiagramList`](SoftwareArchitec/src/App.tsx), [`App`](SoftwareArchitec/src/App.tsx).
 
 High-level architecture
 - Single-page React app.
@@ -16,10 +16,10 @@ High-level architecture
 - Persistence via a JSON REST API (`/api/diagrams`).
 
 Data model (in-code)
-- Diagram: `{ id: string; name: string; blocks: Block[] }` — see [`Diagram`](block-diagram-app/src/App.tsx)
-- Block: `{ id, name, x, y, ports?, requirements?, subblocks? }` — see [`Block`](block-diagram-app/src/App.tsx)
-- Port: `{ id, name, side: 'left'|'right', x?, y?, target?: { blockId, portId } }` — see [`Port`](block-diagram-app/src/App.tsx)
-- Requirements attached to blocks or specific ports: see type [`Requirement`](block-diagram-app/src/App.tsx)
+- Diagram: `{ id: string; name: string; blocks: Block[] }` — see [`Diagram`](SoftwareArchitec/src/App.tsx)
+- Block: `{ id, name, x, y, ports?, requirements?, subblocks? }` — see [`Block`](SoftwareArchitec/src/App.tsx)
+- Port: `{ id, name, side: 'left'|'right', x?, y?, target?: { blockId, portId } }` — see [`Port`](SoftwareArchitec/src/App.tsx)
+- Requirements attached to blocks or specific ports: see type [`Requirement`](SoftwareArchitec/src/App.tsx)
 
 Core algorithms & behavior
 - Layout:
@@ -46,7 +46,7 @@ Extensibility points (good first tasks)
 - Persist undo history or snapshots server-side.
 
 API contract
-- The app calls functions in [`api`](block-diagram-app/src/App.tsx) which wrap fetch. Provide a backend implementing:
+- The app calls functions in [`api`](SoftwareArchitec/src/App.tsx) which wrap fetch. Provide a backend implementing:
   - JSON schema for Diagram as above.
   - Basic CRUD endpoints under `/api/diagrams`.
 
@@ -57,7 +57,7 @@ Testing
 
 Developer workflow
 1. Clone, install:
-   - cd block-diagram-app
+   - cd SoftwareArchitec
    - npm install
 2. Run dev server:
    - npm start
@@ -79,7 +79,7 @@ Code style & organization suggestions
 - Document public functions and types; add small examples in docs/ for grouping behavior and data JSON.
 
 Onboarding checklist for new contributors
-- Read this design doc and the main entry [`block-diagram-app/src/App.tsx`](block-diagram-app/src/App.tsx).
+- Read this design doc and the main entry [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx).
 - Run the app, reproduce UI flows (add blocks, add ports, connect, group).
 - Pick a labelled issue (good first issue), implement, add tests and update DESIGN.md if behavior changes.
 
@@ -89,8 +89,8 @@ Roadmap (short)
 - v0.3: user accounts & remote diagram storage, collaborative editing.
 
 Notes & references
-- Inspect UI and logic directly in [`block-diagram-app/src/App.tsx`](block-diagram-app/src/App.tsx).
-- Static entry: [block-diagram-app/index.html](block-diagram-app/index.html)
-- Package scripts: [block-diagram-app/package.json](block-diagram-app/package.json)
+- Inspect UI and logic directly in [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx).
+- Static entry: [SoftwareArchitec/index.html](SoftwareArchitec/index.html)
+- Package scripts: [SoftwareArchitec/package.json](SoftwareArchitec/package.json)
 
 End of design doc — keep this file updated as architecture and APIs evolve.

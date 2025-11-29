@@ -1,5 +1,5 @@
 {
-  "name": "block-diagram-app",
+  "name": "SoftwareArchitec",
   "version": "1.0.0",
   "description": "An application for creating and editing block diagrams with navigable sub-diagrams.",
   "main": "src/main.tsx",

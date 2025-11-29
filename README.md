@@ -7,9 +7,9 @@ A lightweight React + TypeScript editor for block diagrams with ports, connectio
 Goals: simple visual editing, portable JSON diagrams, and an extensible codebase so contributors can add layout, persistence, and UX improvements.
 
 Key runtime files
-- UI and core logic: [`block-diagram-app/src/App.tsx`](block-diagram-app/src/App.tsx) — contains the main components and types: [`DiagramCanvas`](block-diagram-app/src/App.tsx), [`DiagramView`](block-diagram-app/src/App.tsx), [`DiagramList`](block-diagram-app/src/App.tsx), and [`App`](block-diagram-app/src/App.tsx).
-- Static shell: [block-diagram-app/index.html](block-diagram-app/index.html)
-- Project metadata & scripts: [block-diagram-app/package.json](block-diagram-app/package.json)
+- UI and core logic: [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx) — contains the main components and types: [`DiagramCanvas`](SoftwareArchitec/src/App.tsx), [`DiagramView`](SoftwareArchitec/src/App.tsx), [`DiagramList`](SoftwareArchitec/src/App.tsx), and [`App`](SoftwareArchitec/src/App.tsx).
+- Static shell: [SoftwareArchitec/index.html](SoftwareArchitec/index.html)
+- Project metadata & scripts: [SoftwareArchitec/package.json](SoftwareArchitec/package.json)
 
 Features
 - Create / edit diagrams with draggable square blocks, left/right ports and visual connections.
@@ -20,10 +20,13 @@ Features
 
 Quick start (local)
 1. cd into the project:
-   - cd block-diagram-app
+   - cd SoftwareArchitec
 2. Install and run:
    - npm install
-   - npm start
+   # In Terminal 1:
+   - npm run dev
+   # In Terminal 2 (new terminal):
+   - npm run server
 3. Open http://localhost:5173 (or configured dev server port).
 
 Build and deploy
@@ -32,7 +35,7 @@ Build and deploy
 - Serve built assets on any static host (Netlify, GitHub Pages, simple express/nginx).
 
 Persistence & API
-- The UI reads/writes diagrams via a simple JSON API (calls to `/api/diagrams` in [`block-diagram-app/src/App.tsx`](block-diagram-app/src/App.tsx)). Provide a backend that implements endpoints:
+- The UI reads/writes diagrams via a simple JSON API (calls to `/api/diagrams` in [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx)). Provide a backend that implements endpoints:
   - GET /api/diagrams
   - GET /api/diagrams/:id
   - POST /api/diagrams
@@ -40,7 +43,7 @@ Persistence & API
   - DELETE /api/diagrams/:id
 
 Contributing
-- Read the design overview: [block-diagram-app/DESIGN.md](block-diagram-app/DESIGN.md)
+- Read the design overview: [SoftwareArchitec/DESIGN.md](SoftwareArchitec/DESIGN.md)
 - Fork, add a feature branch, and submit PRs with tests / screenshots.
 - Keep changes modular: prefer new components under src/components and small focused commits.
 
