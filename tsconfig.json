@@ -11,7 +11,8 @@
     "baseUrl": "./src",
     "paths": {
       "@/*": ["*"]
-    }
+    },
+    "lib": ["dom", "es2016"]
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
