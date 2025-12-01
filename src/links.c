@@ -332,11 +332,14 @@ void cmd_dot() {
 
     fprintf(f, "digraph G {\n");
     fprintf(f, "  rankdir=LR;\n");
-    fprintf(f, "  splines=ortho;\n");
+    
+    // Use polyline to prevent wires from 'floating' or missing ports
+    fprintf(f, "  splines=polyline;\n");
+    
     fprintf(f, "  nodesep=0.8;\n"); 
     fprintf(f, "  ranksep=1.0;\n");
     
-    // shape=plain is crucial for HTML labels
+    // Default formatting for standard nodes
     fprintf(f, "  node [shape=plain, fontname=\"Arial\", fontsize=12];\n");
     fprintf(f, "  edge [fontname=\"Arial\", fontsize=10];\n\n");
     
@@ -344,64 +347,63 @@ void cmd_dot() {
     while (m) {
         fprintf(f, "  %s [label=<\n", m->name);
         
-        // --- OUTER TABLE ---
-        // Fix: border="0" cellspacing="0" cellpadding="0" 
-        // This removes the gaps between the Name block and the Port blocks
+        // --- OUTER TABLE (Structure Only) ---
+        // border=0 ensures no outer frame.
         fprintf(f, "   <table border=\"0\" cellborder=\"0\" cellspacing=\"0\" cellpadding=\"0\">\n");
-        fprintf(f, "     <tr>\n");
+        fprintf(f, "    <tr>\n");
 
         // --- 1. LEFT COLUMN: INPUTS ---
-        fprintf(f, "       <td>\n"); 
+        fprintf(f, "      <td>\n"); 
         
-        // We only create the table borders if there are actual ports
         bool has_in = false;
         Port* p = m->ports;
         while(p) { if(p->dir == DIR_IN) has_in = true; p = p->next; }
 
         if (has_in) {
-            // Inner table has borders and padding for text
-            fprintf(f, "         <table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n");
+            // Inner table: Handles the border and white background
+            fprintf(f, "        <table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\" bgcolor=\"#ffffff\">\n");
             p = m->ports;
             while(p) {
                 if(p->dir == DIR_IN) {
-                    fprintf(f, "           <tr><td port=\"%s\" bgcolor=\"#ffffff\">%s</td></tr>\n", p->name, p->name);
+                    fprintf(f, "          <tr><td port=\"%s\">%s</td></tr>\n", p->name, p->name);
                 }
                 p = p->next;
             }
-            fprintf(f, "         </table>\n");
+            fprintf(f, "        </table>\n");
         }
-        fprintf(f, "       </td>\n");
+        fprintf(f, "      </td>\n");
 
         // --- 2. MIDDLE COLUMN: MODULE NAME ---
-        // We use a nested table here to get padding around the text, 
-        // while keeping the border on the container cell.
-        fprintf(f, "       <td border=\"1\" bgcolor=\"#f0f0f0\">\n");
-        fprintf(f, "         <table border=\"0\" cellborder=\"0\" cellspacing=\"0\" cellpadding=\"8\">\n");
-        fprintf(f, "           <tr><td><b>%s</b></td></tr>\n", m->name);
-        fprintf(f, "         </table>\n");
-        fprintf(f, "       </td>\n");
+        // FIX: Moved border/bgcolor from <TD> to the <TABLE>. 
+        // This fixes the "mismatched tag" error on older/strict parsers.
+        fprintf(f, "      <td>\n");
+        fprintf(f, "        <table border=\"1\" cellborder=\"0\" cellspacing=\"0\" cellpadding=\"8\" bgcolor=\"#f0f0f0\">\n");
+        fprintf(f, "          <tr><td><b>%s</b></td></tr>\n", m->name);
+        fprintf(f, "        </table>\n");
+        fprintf(f, "      </td>\n");
 
         // --- 3. RIGHT COLUMN: OUTPUTS ---
-        fprintf(f, "       <td>\n");
+        fprintf(f, "      <td>\n");
         
         bool has_out = false;
         p = m->ports;
         while(p) { if(p->dir == DIR_OUT) has_out = true; p = p->next; }
 
         if (has_out) {
-            fprintf(f, "         <table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\">\n");
+            // Inner table: Handles the border and white background
+            fprintf(f, "        <table border=\"0\" cellborder=\"1\" cellspacing=\"0\" cellpadding=\"4\" bgcolor=\"#ffffff\">\n");
             p = m->ports;
             while(p) {
                 if(p->dir == DIR_OUT) {
-                    fprintf(f, "           <tr><td port=\"%s\" bgcolor=\"#ffffff\">%s</td></tr>\n", p->name, p->name);
+                    fprintf(f, "          <tr><td port=\"%s\">%s</td></tr>\n", p->name, p->name);
                 }
                 p = p->next;
             }
-            fprintf(f, "         </table>\n");
+            fprintf(f, "        </table>\n");
         }
-        fprintf(f, "       </td>\n");
+        fprintf(f, "      </td>\n");
 
-        fprintf(f, "     </tr>\n");
+        fprintf(f, "    </tr>\n");
         fprintf(f, "   </table>>];\n\n");
 
         m = m->next;
@@ -415,7 +417,8 @@ void cmd_dot() {
         Port* p = m->ports;
         while (p) {
             if (p->dir == DIR_OUT && strlen(p->dest_module) > 0) {
-                fprintf(f, "  %s:%s:e -> %s:%s:w;\n", 
+                // Removed :e/:w constraints to allow polyline splines to route cleanly
+                fprintf(f, "  %s:%s -> %s:%s;\n", 
                         m->name, p->name, p->dest_module, p->dest_port);
             }
             p = p->next;
@@ -429,6 +432,7 @@ void cmd_dot() {
     system("dot -Tsvg graph.dot -o graph.svg");
     printf("Generated graph.svg successfully.\n");
 }
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         printf("Usage:\n links add src::port:type dst [type inferred]\n links dot\n ...");
