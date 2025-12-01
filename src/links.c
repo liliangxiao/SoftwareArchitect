@@ -203,6 +203,31 @@ bool parse_arg_safe(char* input, char* m_out, char* p_out, char* t_out) {
 
 // --- Commands ---
 
+void print_usage() {
+    printf("\n--- Link Manager CLI ---\n");
+    printf("Manage connections between module ports.\n\n");
+    printf("USAGE:\n");
+    printf("  links <command> [arguments]\n\n");
+    
+    printf("COMMANDS:\n");
+    printf("  add     <src> <dst>   Create a link from Source to Destination.\n");
+    printf("                        Format:  Module::Port[:Type]\n");
+    printf("                        Example: links add Sensor::Out:float Processor::In\n\n");
+
+    printf("  remove  <src> <dst>   Remove an existing link.\n");
+    printf("                        Example: links remove Sensor::Out Processor::In\n\n");
+    
+    printf("  list    <module>      List all ports and details for a specific module.\n");
+    printf("                        Example: links list Sensor\n\n");
+
+    printf("  draw                  Print a text-based hierarchy diagram to the console.\n\n");
+
+    printf("  dot                   Generate 'graph.dot' and 'graph.svg' (requires Graphviz).\n\n");
+
+    printf("  help                  Show this help message.\n");
+    printf("\n");
+}
+
 void cmd_add(int argc, char* argv[]) {
     if (argc != 4) {
         printf("Error: 'add' requires source and destination.\nUsage: links add src_arg dst_arg\n");
@@ -434,8 +459,9 @@ void cmd_dot() {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) {
-        printf("Usage:\n links add src::port:type dst [type inferred]\n links dot\n ...");
+    // If no arguments or user asks for help
+    if (argc < 2 || strcmp(argv[1], "help") == 0 || strcmp(argv[1], "-h") == 0) {
+        print_usage();
         return 0;
     }
 
@@ -446,6 +472,10 @@ int main(int argc, char* argv[]) {
     else if (strcmp(argv[1], "remove") == 0) cmd_remove(argc, argv);
     else if (strcmp(argv[1], "draw") == 0) cmd_draw();
     else if (strcmp(argv[1], "dot") == 0) cmd_dot();
+    else {
+        printf("Unknown command: %s\n", argv[1]);
+        print_usage();
+    }
     
     save_xml();
     return 0;
