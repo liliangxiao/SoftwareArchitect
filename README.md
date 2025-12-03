@@ -7,9 +7,9 @@ A lightweight React + TypeScript editor for block diagrams with ports, connectio
 Goals: simple visual editing, portable JSON diagrams, and an extensible codebase so contributors can add layout, persistence, and UX improvements.
 
 Key runtime files
-- UI and core logic: [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx) — contains the main components and types: [`DiagramCanvas`](SoftwareArchitec/src/App.tsx), [`DiagramView`](SoftwareArchitec/src/App.tsx), [`DiagramList`](SoftwareArchitec/src/App.tsx), and [`App`](SoftwareArchitec/src/App.tsx).
-- Static shell: [SoftwareArchitec/index.html](SoftwareArchitec/index.html)
-- Project metadata & scripts: [SoftwareArchitec/package.json](SoftwareArchitec/package.json)
+- UI and core logic: [`DataFlowDiagram/src/App.tsx`](DataFlowDiagram/src/App.tsx) — contains the main components and types: [`DiagramCanvas`](DataFlowDiagram/src/App.tsx), [`DiagramView`](DataFlowDiagram/src/App.tsx), [`DiagramList`](DataFlowDiagram/src/App.tsx), and [`App`](DataFlowDiagram/src/App.tsx).
+- Static shell: [DataFlowDiagram/index.html](DataFlowDiagram/index.html)
+- Project metadata & scripts: [DataFlowDiagram/package.json](DataFlowDiagram/package.json)
 
 Features
 - Create / edit diagrams with draggable square blocks, left/right ports and visual connections.
@@ -20,7 +20,7 @@ Features
 
 Quick start (local)
 1. cd into the project:
-   - cd SoftwareArchitec
+   - cd DataFlowDiagram
 2. Install and run:
    - npm install
    # In Terminal 1:
@@ -35,7 +35,7 @@ Build and deploy
 - Serve built assets on any static host (Netlify, GitHub Pages, simple express/nginx).
 
 Persistence & API
-- The UI reads/writes diagrams via a simple JSON API (calls to `/api/diagrams` in [`SoftwareArchitec/src/App.tsx`](SoftwareArchitec/src/App.tsx)). Provide a backend that implements endpoints:
+- The UI reads/writes diagrams via a simple JSON API (calls to `/api/diagrams` in [`DataFlowDiagram/src/App.tsx`](DataFlowDiagram/src/App.tsx)). Provide a backend that implements endpoints:
   - GET /api/diagrams
   - GET /api/diagrams/:id
   - POST /api/diagrams
@@ -43,7 +43,7 @@ Persistence & API
   - DELETE /api/diagrams/:id
 
 Contributing
-- Read the design overview: [SoftwareArchitec/DESIGN.md](SoftwareArchitec/DESIGN.md)
+- Read the design overview: [DataFlowDiagram/DESIGN.md](DataFlowDiagram/DESIGN.md)
 - Fork, add a feature branch, and submit PRs with tests / screenshots.
 - Keep changes modular: prefer new components under src/components and small focused commits.
 
